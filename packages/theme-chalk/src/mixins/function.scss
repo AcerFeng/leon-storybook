@@ -1,0 +1,51 @@
+@import "config";
+
+/* BEM support Func
+ -------------------------- */
+@function selectorToString($selector) {
+  // 字符串化$selector
+  $selector: inspect($selector);
+  // Sass String(字符串) 函数索引都是从1开始
+  // 返回从索引$start-at开始到索引$end-at（包括两端）的$string切片。下标从1开始
+  $selector: str-slice($selector, 2, -2);
+  @return $selector;
+}
+
+// 判断$selector是否包含modifier修饰符--
+@function containsModifier($selector) {
+  $selector: selectorToString($selector);
+
+  // str-index 返回$1在$2中的起始位置，没有找到的话返回null值，下标从1开始
+  @if str-index($selector, $modifier-separator) {
+    @return true;
+  } @else {
+    @return false;
+  }
+}
+
+// 是否为包含.is-
+@function containWhenFlag($selector) {
+  $selector: selectorToString($selector);
+
+  @if str-index($selector, '.' + $state-prefix) {
+    @return true;
+  } @else {
+    @return false;
+  }
+}
+
+// 是否为伪类
+@function containPseudoClass($selector) {
+  $selector: selectorToString($selector);
+
+  @if str-index($selector, ':') {
+    @return true;
+  } @else {
+    @return false;
+  }
+}
+
+@function hitAllSpecialNestRule($selector) {
+
+  @return containsModifier($selector) or containWhenFlag($selector) or containPseudoClass($selector);
+}

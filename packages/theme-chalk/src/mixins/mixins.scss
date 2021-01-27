@@ -1,0 +1,224 @@
+@import "function";
+@import "../common/var";
+
+/* Break-points
+ -------------------------- */
+@mixin res($key, $map: $--breakpoints) {
+  // 循环断点Map，如果存在则返回
+  @if map-has-key($map, $key) {
+    // 添加响应式媒体查询
+    // $key: xs = @media only screen and (max-width: 768px - 1)
+    @media only screen and #{inspect(map-get($map, $key))}{
+      /*
+        `@content`用在`mixin`里面的，当定义一个`mixin`后，并且设置了`@content`；
+        `@include`的时候可以传入相应的内容到`mixin`里面
+
+        $color: white;
+        @mixin colors($color: blue) {
+          background-color: $color;
+          @content;
+          border-color: $color;
+        }
+        .colors {
+          @include colors { color: $color; }
+        }
+
+        编译后：
+
+        .colors {
+          background-color: blue;
+          color: white;
+          border-color: blue;
+        }
+      */
+      @content;
+    }
+  } @else {
+    @warn "Undefined points: `#{$map}`";
+  }
+}
+
+/* Scrollbar
+ -------------------------- */
+ @mixin scroll-bar {
+   $--scrollbar-thumb-background: #b4bccc;
+   $--scrollbar-track-background: #fff;
+
+   &::-webkit-scrollbar {
+     z-index: 11;
+     width: 6px;
+
+     &:horizontal {
+       height: 6px;
+     }
+
+     &-thumb {
+       border-radius: 5px;
+       width: 6px;
+       background: $--scrollbar-thumb-background;
+     }
+
+     &-corner {
+       background: $--scrollbar-track-background;
+     }
+
+     &-track {
+       background: $--scrollbar-track-background;
+
+       &-piece {
+         background: $--scrollbar-track-background;
+         width: 6px;
+       }
+     }
+   }
+ }
+
+ /* Placeholder
+ -------------------------- */
+@mixin placeholder {
+  &::-webkit-input-placeholder {
+    @content;
+  }
+
+  &::-moz-placeholder {
+    @content;
+  }
+
+  &:-ms-input-placeholder {
+    @content;
+  }
+}
+
+/* BEM
+ -------------------------- */
+@mixin b($block) {
+  // 在局部块中设置全局变量 $B 将会是全局变量
+  $B: $namespace+'-'+$block !global;
+
+  /*
+    使用时相当于：
+    .el-$block {
+      ...
+    }
+  */
+  .#{$B} {
+    @content;
+  }
+}
+
+@mixin e($element) {
+  $E: $element !global;
+  $selector: &;
+  $currentSelector: "";
+  @each $unit in $element {
+    $currentSelector: #{$currentSelector + "." + $B + $element-separator + $unit + ","};
+  }
+
+  @if hitAllSpecialNestRule($selector) {
+    // @at-root 是sass3.3版本的新特性，可以让你在sass中嵌套选择器，或者做别的事
+    // 但编译出来的css却不发生嵌套。@at-root特性与BEM结合在一起，在编写样式
+    // 时不用再恐惧BEM的长选择器的方式
+    @at-root {
+      #{$selector} {
+        #{$currentSelector} {
+          @content;
+        }
+      }
+    }
+  } @else {
+    @at-root {
+      #{$currentSelector} {
+        @content;
+      }
+    }
+  }
+}
+
+@mixin m($modifier) {
+  $selector: &;
+  $currentSelector: "";
+  @each $unit in $modifier {
+    $currentSelector: #{$currentSelector + & + $modifier-separator + $unit + ","};
+  }
+
+  @at-root {
+    #{$currentSelector} {
+      @content;
+    }
+  }
+}
+
+@mixin configurable-m($modifier, $E-flag: false) {
+  $selector: &;
+  $interpolation: '';
+
+  @if $E-flag {
+    $interpolation: $element-separator + $E-flag;
+  }
+
+  @at-root {
+    #{$selector} {
+      .#{$B+$interpolation+$modifier-separator+$modifier} {
+        @content;
+      }
+    }
+  }
+}
+
+@mixin spec-selector($specSelector: '', $element: $E, $modifier: false, $block: $B) {
+  $modifierCombo: '';
+
+  @if $modifier {
+    $modifierCombo: $modifier-separator + $modifier;
+  }
+
+  @at-root {
+    #{&}#{$specSelector}.#{$block+$element-separator+$element+$modifierCombo}  {
+      @content;
+    }
+  }
+}
+
+@mixin meb($modifier: false, $element: $E, $block: $B) {
+  $selector: &;
+  $modifierCombo: '';
+
+  @if $modifier {
+    $modifierCombo: $modifier-separator+$modifier;
+  }
+
+  @at-root {
+    #{$selector} {
+      .#{$block+$element-separator+$element+$modifierCombo} {
+        @content;
+      }
+    }
+  }
+}
+// xx.is-xxx
+@mixin when($state) {
+  @at-root {
+    &.#{$state-prefix+$state} {
+      @content;
+    }
+  }
+}
+
+@mixin extend-rule($name) {
+  @extend #{'$shared-'+$name};
+}
+
+@mixin share-rule($name) {
+  $rule-name: '%shared-'+$name;
+
+  @at-root #{$rule-name} {
+    @content;
+  }
+}
+
+// 伪类mixin
+@mixin pseudo($pseudo) {
+  @at-root #{&}#{':#{$pseudo}'} {
+    @content;
+  }
+}
